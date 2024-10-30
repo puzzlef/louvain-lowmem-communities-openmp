@@ -59,25 +59,56 @@ inline double getModularity(const G& x, const LouvainResult<K>& a, double M) {
  */
 template <class G>
 void runExperiment(const G& x) {
-  using K = typename G::key_type;
-  using V = typename G::edge_value_type;
-  int repeat  = REPEAT_METHOD;
-  int retries = 5;
-  vector<K> *init = nullptr;
-  double M = edgeWeightOmp(x)/2;
+  int repeat = REPEAT_METHOD;
+  double   M = edgeWeightOmp(x)/2;
   // Follow a specific result logging format, which can be easily parsed later.
-  auto flog = [&](const auto& ans, const char *technique) {
+  auto flog = [&](const auto& ans, const char *technique, size_t numSlots=0) {
     printf(
       "{%03d threads} -> "
-      "{%09.1fms, %09.1fms mark, %09.1fms init, %09.1fms first, %09.1fms move, %09.1fms aggr, %04d iters, %04d passes, %01.9f modularity} %s\n",
+      "{%09.1fms, %09.1fms mark, %09.1fms init, %09.1fms first, %09.1fms move, %09.1fms aggr, %.3e slots, %04d iters, %04d passes, %01.9f modularity} %s\n",
       MAX_THREADS,
       ans.time, ans.markingTime, ans.initializationTime, ans.firstPassTime, ans.localMoveTime, ans.aggregationTime,
-      ans.iterations, ans.passes, getModularity(x, ans, M), technique
+      double(numSlots), ans.iterations, ans.passes, getModularity(x, ans, M), technique
     );
   };
   // Find static Louvain.
-  auto b1 = louvainStaticOmp(x, {repeat});
-  flog(b1, "louvainStaticOmp");
+  {
+    auto b0 = louvainStaticOmp(x, {repeat});
+    flog(b0, "louvainStaticOmp");
+  }
+  // Get community memberships on original graph (low memory).
+  {
+    auto b1 = louvainLowmemStaticOmp<false>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajority", 0);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 4>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 4);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 8>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 8);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 16>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 16);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 32>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 32);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 64>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 64);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 128>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 128);
+  }
+  {
+    auto b1 = louvainLowmemStaticOmp<true, 256>(x, {repeat});
+    flog(b1, "louvainLowmemStaticOmpMajorities", 256);
+  }
 }
 
 

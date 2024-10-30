@@ -15,3 +15,4 @@
 #include "dfs.hxx"
 #include "batch.hxx"
 #include "louvain.hxx"
+#include "louvainLowmem.hxx"
