@@ -1,25 +1,17 @@
-Multi-threaded OpenMP-based [Louvain] algorithm for [community detection].
+Design of memory-efficient OpenMP-based Parallel [Louvain] algorithm for [community detection].
 
-Recent advancements in data collection and graph representations have led to unprecedented levels of complexity, demanding efficient parallel algorithms for community detection on large networks. The use of multicore/shared memory setups is crucial for energy efficiency and compatibility with extensive DRAM sizes. However, existing community detection algorithms face challenges in parallelization due to their irregular and inherently sequential nature. While studies on the Louvain algorithm propose optimizations and parallelization techniques, they often neglect the aggregation phase, creating a bottleneck even after optimizing the local-moving phase. Additionally, these optimization techniques are scattered across multiple papers, making it challenging for readers to grasp and implement them effectively. To address this, we introduce **GVE-Louvain**, an optimized *parallel implementation of Louvain* for shared memory multicores.
+Community detection in graphs identifies groups of nodes that are more densely connected within the groups than between them. While many studies focus on enhancing detection performance, managing memory becomes critical for processing large graphs on shared-memory systems. Recently, we developed efficient implementations of the Louvain, Leiden, and Label Propagation Algorithms (LPA) for community detection, though these methods incur high memory costs due to collision-free per-thread hashtables. To mitigate this, we introduce memory-efficient alternatives based on weighted Misra-Gries (MG) sketches, which replace the per-thread hashtables and significantly reduce memory usage in Louvain, Leiden, and LPA implementations. This approach achieves only a minor quality reduction (up to 1%) with moderate runtime penalties. We believe these slightly slower but memory-efficient methods are well-suited for parallel processing and could offer better performance than current memory-intensive techniques on systems with numerous threads.
 
-Below we plot the time taken by [Vite] (Louvain), [Grappolo] (Louvain), [NetworKit] Louvain, [cuGraph] Louvain, and GVE-Louvain on 13 different graphs. GVE-Louvain surpasses Vite, Grappolo, NetworKit Louvain, and cuGraph Louvain by `50×`, `22×`, `20×`, and `5.8x` respectively, achieving a processing rate of `560𝑀` edges/s on a `3.8𝐵` edge graph.
+Below we plot the time taken by [Default Louvain], weighted Boyer-Moore (BM) based Louvain, and weighted Misra-Gries (MG) based Louvain with `k=8` slots, on 13 different graphs. MG8 Louvain is, on average, `1.48x` slower than Default Louvain, but requires significantly less memory (i.e., just `64 bytes` per thread).
 
-[![](https://i.imgur.com/qLNfXLp.png)][sheets-o1]
+[![](https://i.imgur.com/derv6de.png)][sheets-o1]
 
-Below we plot the speedup of GVE-Louvain wrt Vite, Grappolo, NetworKit Louvain, and cuGraph Louvain.
+Next, we plot the modularity of communities identified by Default Louvain, BM Leiden, and MG8 Louvain. MG8 Louvain, on average, achieves a modularity within `1%` of Default Louvain - and is thus a viable memory-efficient alternative to the Default Louvain. Higher values of `k` can be chosen for even better modularity, if needed.
 
-[![](https://i.imgur.com/aSy94lN.png)][sheets-o1]
-
-Next, we plot the modularity of communities identified by Vite, Grappolo, NetworKit, and GVE-Louvain. GVE-Louvain on average obtains `3.1%` higher modularity than Vite (especially on web graphs), `0.6%` lower modularity than Grappolo and NetworKit (especially on social networks with poor clustering), and `2.6%` higher modularity than cuGraph Louvain (primarily because cuGraph Leiden failed to run on graphs that are well-clusterable).
-
-[![](https://i.imgur.com/4WsjQkF.png)][sheets-o1]
-
-Finally, we plot the strong scaling behaviour of GVE-Louvain. With doubling of threads, GVE-Louvain exhibits an average performance scaling of `1.6×`.
-
-[![](https://i.imgur.com/GjciJ9V.png)][sheets-o2]
+[![](https://i.imgur.com/EiM7Hdn.png)][sheets-o1]
 
 Refer to our technical report for more details: \
-[GVE-Louvain: Fast Louvain Algorithm for Community Detection in Shared Memory Setting][report].
+[Memory-Efficient Community Detection on Large Graphs Using Weighted Sketches][report].
 
 <br>
 
@@ -30,13 +22,9 @@ Refer to our technical report for more details: \
 
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
 [community detection]: https://en.wikipedia.org/wiki/Community_structure
-[sheets-o1]: https://docs.google.com/spreadsheets/d/1aJI2Us60KXbSx9LeGyHdnuYfEg4d_5bFhiLXc9eaUjM/edit?usp=sharing
-[sheets-o2]: https://docs.google.com/spreadsheets/d/1eR0jkbjoskL9K2HNVy-irnHERMV770egljh94alRT0U/edit?usp=sharing
-[report]: https://arxiv.org/abs/2312.04876
-[Vite]: https://github.com/ECP-ExaGraph/vite
-[Grappolo]: https://github.com/ECP-ExaGraph/grappolo
-[NetworKit]: https://github.com/networkit/networkit
-[cuGraph]: https://github.com/rapidsai/cugraph
+[Default Louvain]: https://github.com/puzzlef/louvain-communities-openmp
+[sheets-o1]: https://docs.google.com/spreadsheets/d/1fZhh2oPDB2nBKUbBowU-VxpeJ0cymWJHLrtkmP7aG5Y/edit?usp=sharing
+[report]: https://arxiv.org/abs/2411.02268
 
 <br>
 <br>
@@ -44,7 +32,7 @@ Refer to our technical report for more details: \
 
 ### Code structure
 
-The code structure of GVE-Louvain is as follows:
+The code structure is as follows:
 
 ```bash
 - inc/_algorithm.hxx: Algorithm utility functions
@@ -70,11 +58,12 @@ The code structure of GVE-Louvain is as follows:
 - inc/duplicate.hxx: Graph duplicating functions
 - inc/Graph.hxx: Graph data structure functions
 - inc/louvain.hxx: Louvain community detection algorithm functions
+- inc/louvainLowmem.hxx: Memory-efficient Louvain community detection algorithm functions
 - inc/main.hxx: Main header
 - inc/mtx.hxx: Graph file reading functions
 - inc/properties.hxx: Graph Property functions
 - inc/selfLoop.hxx: Graph Self-looping functions
-- inc/symmetricize.hxx: Graph Symmetricization functions
+- inc/symmetrize.hxx: Graph Symmetrization functions
 - inc/transpose.hxx: Graph transpose functions
 - inc/update.hxx: Update functions
 - main.cxx: Experimentation code
@@ -102,7 +91,6 @@ Note that each branch in this repository contains code for a specific experiment
 
 [![](https://img.youtube.com/vi/M6npDdVGue4/maxresdefault.jpg)](https://www.youtube.com/watch?v=M6npDdVGue4)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
-[![DOI](https://zenodo.org/badge/519156419.svg)](https://zenodo.org/doi/10.5281/zenodo.6945748)
 
 
 [Prof. Dip Sankar Banerjee]: https://sites.google.com/site/dipsankarban/
