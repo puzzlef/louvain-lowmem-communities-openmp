@@ -78,36 +78,8 @@ void runExperiment(const G& x) {
   }
   // Get community memberships on original graph (low memory).
   {
-    auto b1 = louvainLowmemStaticOmp<false>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajority", 0);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 4>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 4);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 8>(x, {repeat});
+    auto b1 = louvainLowmemStaticOmp(x, {repeat});
     flog(b1, "louvainLowmemStaticOmpMajorities", 8);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 16>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 16);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 32>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 32);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 64>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 64);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 128>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 128);
-  }
-  {
-    auto b1 = louvainLowmemStaticOmp<true, 256>(x, {repeat});
-    flog(b1, "louvainLowmemStaticOmpMajorities", 256);
   }
 }
 

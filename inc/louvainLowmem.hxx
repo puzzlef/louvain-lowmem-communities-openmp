@@ -231,7 +231,7 @@ inline W louvainLowmemDeltaModularityMajority(const G& x, K u, K c, const vector
  * @param fa is vertex allowed to be updated?
  * @returns iterations performed (0 if converged already)
  */
-template <bool MULTI=false, class G, class K, class V, class W, class B, size_t SLOTS, class FC, class FA>
+template <bool MULTI=true, class G, class K, class V, class W, class B, size_t SLOTS, class FC, class FA>
 inline int louvainLowmemMoveOmpW(vector<K>& vcom, vector<W>& ctot, vector<B>& vaff, vector<array<K, SLOTS>*>& mcs, vector<array<V, SLOTS>*>& mws, const G& x, const vector<W>& vtot, double M, double R, int L, FC fc, FA fa) {
   size_t S = x.span();
   int l = 0;
@@ -288,7 +288,7 @@ inline int louvainLowmemMoveOmpW(vector<K>& vcom, vector<W>& ctot, vector<B>& va
  * @param fc has local moving phase converged?
  * @returns iterations performed (0 if converged already)
  */
-template <bool MULTI=false, class G, class K, class V, class W, class B, size_t SLOTS, class FC>
+template <bool MULTI=true, class G, class K, class V, class W, class B, size_t SLOTS, class FC>
 inline int louvainLowmemMoveOmpW(vector<K>& vcom, vector<W>& ctot, vector<B>& vaff, vector<array<K, SLOTS>*>& mcs, vector<array<V, SLOTS>*>& mws, const G& x, const vector<W>& vtot, double M, double R, int L, FC fc) {
   auto fa = [](auto u) { return true; };
   return louvainLowmemMoveOmpW<MULTI>(vcom, ctot, vaff, mcs, mws, x, vtot, M, R, L, fc, fa);
@@ -371,7 +371,7 @@ inline void louvainLowmemAggregateOmpW(vector<size_t>& yoff, vector<K>& ydeg, ve
  * @param fa is vertex allowed to be updated? (u)
  * @returns louvain result
  */
-template <bool MULTI=false, size_t SLOTS=4, class G, class FI, class FM, class FA>
+template <bool MULTI=true, size_t SLOTS=8, class G, class FI, class FM, class FA>
 inline auto louvainLowmemInvokeOmp(const G& x, const LouvainOptions& o, FI fi, FM fm, FA fa) {
   using  K = typename G::key_type;
   using  V = typename G::edge_value_type;
@@ -483,7 +483,7 @@ inline auto louvainLowmemInvokeOmp(const G& x, const LouvainOptions& o, FI fi, F
  * @param o louvain options
  * @returns louvain result
  */
-template <bool MULTI=false, size_t SLOTS=4, class G>
+template <bool MULTI=true, size_t SLOTS=8, class G>
 inline auto louvainLowmemStaticOmp(const G& x, const LouvainOptions& o={}) {
   using B = char;
   auto fi = [&](auto& vcom, auto& vtot, auto& ctot) {
