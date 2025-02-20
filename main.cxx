@@ -71,15 +71,15 @@ void runExperiment(const G& x) {
       double(numSlots), ans.iterations, ans.passes, getModularity(x, ans, M), technique
     );
   };
-  // Find static Louvain.
-  {
-    auto b0 = louvainStaticOmp(x, {repeat});
-    flog(b0, "louvainStaticOmp");
-  }
   // Get community memberships on original graph (low memory).
   {
     auto b1 = louvainLowmemStaticOmp(x, {repeat});
     flog(b1, "louvainLowmemStaticOmpMajorities", 8);
+  }
+  // Find static Louvain.
+  {
+    auto b0 = louvainStaticOmp(x, {repeat});
+    flog(b0, "louvainStaticOmp");
   }
 }
 
