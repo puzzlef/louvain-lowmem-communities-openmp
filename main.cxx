@@ -65,16 +65,21 @@ void runExperiment(const G& x) {
   auto flog = [&](const auto& ans, const char *technique, size_t numSlots=0) {
     printf(
       "{%03d threads} -> "
-      "{%09.1fms, %09.1fms mark, %09.1fms init, %09.1fms first, %09.1fms move, %09.1fms aggr, %.3e slots, %04d iters, %04d passes, %01.9f modularity} %s\n",
+      "{%09.1fms, %09.1fms mark, %09.1fms init, %09.1fms first, %09.1fms move, %09.1fms aggr, %09.4fGB memory, %.3e slots, %04d iters, %04d passes, %01.9f modularity} %s\n",
       MAX_THREADS,
       ans.time, ans.markingTime, ans.initializationTime, ans.firstPassTime, ans.localMoveTime, ans.aggregationTime,
-      double(numSlots), ans.iterations, ans.passes, getModularity(x, ans, M), technique
+      ans.memory, double(numSlots), ans.iterations, ans.passes, getModularity(x, ans, M), technique
     );
   };
   // Get community memberships on original graph (low memory).
   {
     auto b1 = louvainLowmemStaticOmp(x, {repeat});
     flog(b1, "louvainLowmemStaticOmpMajorities", 8);
+  }
+  // Get community memberships on original graph (low memory).
+  {
+    auto b2 = louvainLowmemStaticOmp<false, 1>(x, {repeat});
+    flog(b2, "louvainLowmemStaticOmpMajority", 1);
   }
   // Find static Louvain.
   {

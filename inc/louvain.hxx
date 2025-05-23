@@ -93,6 +93,8 @@ struct LouvainResult {
   float localMoveTime;
   /** Time spent in milliseconds in aggregation phase. */
   float aggregationTime;
+  /** Memory used in gigabytes. */
+  float memory;
   #pragma endregion
 
 
@@ -110,9 +112,10 @@ struct LouvainResult {
    * @param firstPassTime time spent in milliseconds in first pass
    * @param localMoveTime time spent in milliseconds in local-moving phase
    * @param aggregationTime time spent in milliseconds in aggregation phase
+   * @param memory memory used in gigabytes
    */
-  LouvainResult(vector<K>&& membership, vector<W>&& vertexWeight, vector<W>&& communityWeight, int iterations=0, int passes=0, float time=0, float markingTime=0, float initializationTime=0, float firstPassTime=0, float localMoveTime=0, float aggregationTime=0) :
-  membership(membership), vertexWeight(vertexWeight), communityWeight(communityWeight), iterations(iterations), passes(passes), time(time), markingTime(markingTime), initializationTime(initializationTime), firstPassTime(firstPassTime), localMoveTime(localMoveTime), aggregationTime(aggregationTime) {}
+  LouvainResult(vector<K>&& membership, vector<W>&& vertexWeight, vector<W>&& communityWeight, int iterations=0, int passes=0, float time=0, float markingTime=0, float initializationTime=0, float firstPassTime=0, float localMoveTime=0, float aggregationTime=0, float memory=0) :
+  membership(membership), vertexWeight(vertexWeight), communityWeight(communityWeight), iterations(iterations), passes(passes), time(time), markingTime(markingTime), initializationTime(initializationTime), firstPassTime(firstPassTime), localMoveTime(localMoveTime), aggregationTime(aggregationTime), memory(memory) {}
 
 
   /**
@@ -128,9 +131,10 @@ struct LouvainResult {
    * @param firstPassTime time spent in milliseconds in first pass
    * @param localMoveTime time spent in milliseconds in local-moving phase
    * @param aggregationTime time spent in milliseconds in aggregation phase
+   * @param memory memory used in gigabytes
    */
-  LouvainResult(vector<K>& membership, vector<W>& vertexWeight, vector<W>& communityWeight, int iterations=0, int passes=0, float time=0, float markingTime=0, float initializationTime=0, float firstPassTime=0, float localMoveTime=0, float aggregationTime=0) :
-  membership(move(membership)), vertexWeight(move(vertexWeight)), communityWeight(move(communityWeight)), iterations(iterations), passes(passes), time(time), markingTime(markingTime), initializationTime(initializationTime), firstPassTime(firstPassTime), localMoveTime(localMoveTime), aggregationTime(aggregationTime) {}
+  LouvainResult(vector<K>& membership, vector<W>& vertexWeight, vector<W>& communityWeight, int iterations=0, int passes=0, float time=0, float markingTime=0, float initializationTime=0, float firstPassTime=0, float localMoveTime=0, float aggregationTime=0, float memory=0) :
+  membership(move(membership)), vertexWeight(move(vertexWeight)), communityWeight(move(communityWeight)), iterations(iterations), passes(passes), time(time), markingTime(markingTime), initializationTime(initializationTime), firstPassTime(firstPassTime), localMoveTime(localMoveTime), aggregationTime(aggregationTime), memory(memory) {}
   #pragma endregion
 };
 #pragma endregion
@@ -586,6 +590,8 @@ inline auto louvainInvokeOmp(const G& x, const LouvainOptions& o, FI fi, FM fm, 
   size_t X = x.size();
   size_t S = x.span();
   double M = edgeWeightOmp(x)/2;
+  // Measure initial memory usage.
+  float m0 = measureMemoryUsage();
   // Allocate buffers.
   int    T = omp_get_max_threads();
   vector<B> vaff(S);            // Affected vertex flag (any pass)
@@ -602,6 +608,8 @@ inline auto louvainInvokeOmp(const G& x, const LouvainOptions& o, FI fi, FM fm, 
   DiGraphCsr<K, None, None, K> cv(S, S);  // CSR for community vertices
   DiGraphCsr<K, None, W> y(S, Y);         // CSR for aggregated graph (input);  y(S, X)
   DiGraphCsr<K, None, W> z(S, Z);         // CSR for aggregated graph (output); z(S, X)
+  // Measure memory usage after allocation.
+  float m1 = measureMemoryUsage();
   // Perform Louvain algorithm.
   float tm = 0, ti = 0, tp = 0, tl = 0, ta = 0;  // Time spent in different phases
   float t  = measureDurationMarked([&](auto mark) {
@@ -670,7 +678,7 @@ inline auto louvainInvokeOmp(const G& x, const LouvainOptions& o, FI fi, FM fm, 
     });
   }, o.repeat);
   louvainFreeHashtablesW(vcs, vcout);
-  return LouvainResult<K, W>(ucom, utot, ctot, l, p, t, tm/o.repeat, ti/o.repeat, tp/o.repeat, tl/o.repeat, ta/o.repeat);
+  return LouvainResult<K, W>(ucom, utot, ctot, l, p, t, tm/o.repeat, ti/o.repeat, tp/o.repeat, tl/o.repeat, ta/o.repeat, m1-m0);
 }
 #pragma endregion
 
